@@ -2,10 +2,13 @@ package com.autoflex;
 
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-
 import java.util.List;
 
 @Path("/api")
@@ -14,20 +17,20 @@ import java.util.List;
 public class ProductionResource {
 
   @Inject
-  ProductionService service;
+  ProductionService productionService;
 
   @GET
   @Path("/materials")
-  public List<RawMaterial> listMaterials() {
+  public List<RawMaterial> listRawMaterials() {
     return RawMaterial.listAll();
   }
 
   @POST
   @Path("/materials")
   @Transactional
-  public Response createMaterial(RawMaterial material) {
-    material.persist();
-    return Response.status(201).entity(material).build();
+  public Response createRawMaterial(RawMaterial rawMaterial) {
+    rawMaterial.persist();
+    return Response.status(201).entity(rawMaterial).build();
   }
 
   @GET
@@ -36,9 +39,17 @@ public class ProductionResource {
     return Product.listAll();
   }
 
+  @POST
+  @Path("/products")
+  @Transactional
+  public Response createProduct(Product product) {
+    product.persist();
+    return Response.status(201).entity(product).build();
+  }
+
   @GET
   @Path("/plan")
-  public Response getProductionPlan() {
-    return Response.ok(service.calculateProductionPlan()).build();
+  public List<ProductionService.ProductionPlanItem> getProductionPlan() {
+    return productionService.calculateProductionPlan();
   }
 }

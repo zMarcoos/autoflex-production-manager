@@ -2,11 +2,16 @@ import { useState, useEffect } from 'react';
 import './App.css';
 
 export const App = () => {
-  const [materials, setMaterials] = useState([]);
+  const [rawMaterials, setRawMaterials] = useState([]);
   const [products, setProducts] = useState([]);
-  const [plan, setPlan] = useState([]);
+  const [productionPlan, setProductionPlan] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  const [newMaterialName, setNewMaterialName] = useState('');
+  const [newMaterialQuantity, setNewMaterialQuantity] = useState('');
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -15,30 +20,30 @@ export const App = () => {
     try {
       const responseMaterials = await fetch('http://localhost:8080/api/materials');
       if (!responseMaterials.ok) {
-        throw new Error("Erro ao carregar materiais");
+        throw new Error("Failed to fetch materials");
       }
 
       const dataMaterials = await responseMaterials.json();
-      setMaterials(dataMaterials);
+      setRawMaterials(dataMaterials);
 
       const responseProducts = await fetch('http://localhost:8080/api/products');
       if (!responseProducts.ok) {
-        throw new Error("Erro ao carregar produtos");
+        throw new Error("Failed to fetch products");
       }
-      
+
       const dataProducts = await responseProducts.json();
       setProducts(dataProducts);
 
       const responsePlan = await fetch('http://localhost:8080/api/plan');
       if (!responsePlan.ok) {
-        throw new Error("Erro ao calcular plano");
+        throw new Error("Failed to fetch production plan");
       }
 
       const dataPlan = await responsePlan.json();
-      setPlan(dataPlan);
+      setProductionPlan(dataPlan);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Erro de conexão. Verifique se o Backend (Quarkus) está rodando.");
+      setErrorMessage("Connection error. Please check if the Backend is running.");
     } finally {
       setIsLoading(false);
     }
@@ -48,28 +53,116 @@ export const App = () => {
     fetchData();
   }, []);
 
+  const handleCreateMaterial = async (event) => {
+    event.preventDefault();
+    try {
+      await fetch('http://localhost:8080/api/materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newMaterialName,
+          stockQuantity: parseInt(newMaterialQuantity)
+        })
+      });
+      setNewMaterialName('');
+      setNewMaterialQuantity('');
+      fetchData();
+    } catch (error) {
+      alert('Error creating material', error);
+    }
+  };
+
+  const handleCreateProduct = async (event) => {
+    event.preventDefault();
+
+    try {
+      await fetch('http://localhost:8080/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newProductName,
+          price: parseFloat(newProductPrice),
+          compositions: []
+        })
+      });
+
+      setNewProductName('');
+      setNewProductPrice('');
+      fetchData();
+    } catch (error) {
+      alert('Error creating product', error);
+    }
+  };
+
   return (
     <div className="container">
       <h1 className="header-title">🏭 Autoflex Production Manager</h1>
 
-      <button className="button-update" onClick={fetchData} disabled={isLoading}>
-        {isLoading ? 'Carregando...' : '🔄 Atualizar Dados'}
-      </button>
-
       {errorMessage && <div className="error-message">{errorMessage}</div>}
+
+      <div className="card-container" style={{ marginBottom: '30px' }}>
+        <h3>➕ Quick Registration</h3>
+        <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
+
+          <form onSubmit={handleCreateMaterial} style={{ flex: 1 }}>
+            <h4>New Raw Material</h4>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input
+                placeholder="Name (e.g., Steel)"
+                value={newMaterialName}
+                onChange={(e) => setNewMaterialName(e.target.value)}
+                required
+                style={{ padding: '8px', flex: 1, border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+              <input
+                placeholder="Qty"
+                type="number"
+                value={newMaterialQuantity}
+                onChange={(e) => setNewMaterialQuantity(e.target.value)}
+                required
+                style={{ padding: '8px', width: '80px', border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+              <button type="submit" className="button-update" style={{ margin: 0, fontSize: '0.9rem' }}>Save</button>
+            </div>
+          </form>
+
+          <form onSubmit={handleCreateProduct} style={{ flex: 1 }}>
+            <h4>New Product</h4>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input
+                placeholder="Name (e.g., Table)"
+                value={newProductName}
+                onChange={(e) => setNewProductName(e.target.value)}
+                required
+                style={{ padding: '8px', flex: 1, border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+              <input
+                placeholder="Price"
+                type="number"
+                step="0.01"
+                value={newProductPrice}
+                onChange={(e) => setNewProductPrice(e.target.value)}
+                required
+                style={{ padding: '8px', width: '80px', border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+              <button type="submit" className="button-update" style={{ margin: 0, fontSize: '0.9rem' }}>Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
 
       <div className="grid-layout">
         <div className="card-container">
-          <h3>📦 Estoque Atual</h3>
+          <h3>📦 Current Stock</h3>
           <table className="data-table">
             <thead>
               <tr>
                 <th>Item</th>
-                <th>Quantidade</th>
+                <th>Quantity</th>
               </tr>
             </thead>
             <tbody>
-              {materials.map((rawMaterial) => (
+              {rawMaterials.map((rawMaterial) => (
                 <tr key={rawMaterial.id}>
                   <td>{rawMaterial.name}</td>
                   <td><span className="quantity-badge">{rawMaterial.stockQuantity}</span></td>
@@ -80,12 +173,12 @@ export const App = () => {
         </div>
 
         <div className="card-container">
-          <h3>🪑 Catálogo</h3>
+          <h3>🪑 Product Catalog</h3>
           <table className="data-table">
             <thead>
               <tr>
-                <th>Produto</th>
-                <th>Preço</th>
+                <th>Product</th>
+                <th>Price</th>
               </tr>
             </thead>
             <tbody>
@@ -103,31 +196,36 @@ export const App = () => {
       </div>
 
       <div className="result-box">
-        <h2>🚀 Plano de Produção Sugerido</h2>
-        <p>Prioridade: <strong>Maior Valor Agregado</strong></p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: 0 }}>🚀 Production Plan</h2>
+          <button className="button-update" onClick={fetchData} disabled={isLoading} style={{ margin: 0 }}>
+            {isLoading ? 'Wait...' : '🔄 Recalculate'}
+          </button>
+        </div>
+        <p style={{ marginTop: '10px' }}>Priority Strategy: <strong>Highest Value First</strong></p>
 
-        {plan.length === 0 && !isLoading ? (
+        {productionPlan.length === 0 ? (
           <div className="empty-message">
-            ⚠️ Com o estoque atual, não é possível produzir nenhum item.
+            ⚠️ No items can be produced with current stock.
           </div>
         ) : (
           <table className="data-table">
             <thead>
               <tr className="result-header">
-                <th>Produto</th>
-                <th>Quantidade Sugerida</th>
-                <th>Faturamento Estimado</th>
+                <th>Product</th>
+                <th>Suggested Quantity</th>
+                <th>Estimated Total Value</th>
               </tr>
             </thead>
             <tbody>
-              {plan.map((item, index) => (
+              {productionPlan.map((planItem, index) => (
                 <tr key={index} style={{ background: 'white' }}>
-                  <td>{item.productName}</td>
+                  <td>{planItem.productName}</td>
                   <td style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
-                    {item.quantityProduced} unidades
+                    {planItem.quantityProduced} units
                   </td>
                   <td className="price-text">
-                    R$ {item.totalEstimatedValue?.toFixed(2)}
+                    R$ {planItem.totalEstimatedValue?.toFixed(2)}
                   </td>
                 </tr>
               ))}
